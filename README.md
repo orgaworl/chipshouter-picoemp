@@ -18,7 +18,6 @@ export PICO_SDK_PATH="$(pwd)/pico-sdk"
 开始编译
 ```shell
 # build
-
 mkdir build
 cd ./build
 cmake -S .. -B .
@@ -51,3 +50,6 @@ make
 - gpio0 触发输入引脚
 - gpio1 用以复位目标设备，通过反转实现复位
 
+## 自动化攻击
+
+见 `picoemp_auto_attack`
