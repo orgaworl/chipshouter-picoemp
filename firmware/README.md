@@ -8,6 +8,7 @@ The C firmware in the [c](c) directory was started by @nezza, and is the most ro
 This includes a serial console similar to ChipSHOUTER, and also allows usage of an external
 trigger input.
 
+
 ## Micropython
 
 The micropython firmware is a basic Micropython example. See the [micropython](micropython)

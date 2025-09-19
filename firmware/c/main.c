@@ -10,7 +10,7 @@
 #include "trigger_basic.pio.h"
 
 static bool armed = false;
-static bool timeout_active = true;
+static bool timeout_active = false;
 static bool hvp_internal = true;
 static absolute_time_t timeout_time;
 static uint offset = 0xFFFFFFFF;

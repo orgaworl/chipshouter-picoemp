@@ -157,48 +157,6 @@ bool handle_command(char *command) {
         }
         return true;
     }
-    if(strcmp(command, "fa") == 0 || strcmp(command, "fast_trigger_configure") == 0) {
-        char **unused;
-        printf(" configure in cycles\n");
-        printf("  1 cycle = 8ns\n");
-        printf("  1us = 125 cycles\n");
-        printf("  1ms = 125000 cycles\n");
-        printf("  max = MAX_UINT32 = 4294967295 cycles = 34359ms\n");
-
-        printf(" pulse_delay_cycles (current: %d, default: %d)?\n> ", pulse_delay_cycles, PULSE_DELAY_CYCLES_DEFAULT);
-        read_line();
-        printf("\n");
-        if (serial_buffer[0] == 0)
-            printf("Using default\n");
-        else
-            pulse_delay_cycles = strtoul(serial_buffer, unused, 10);
-        
-        printf(" pulse_time_cycles (current: %d, default: %d)?\n> ", pulse_time_cycles, PULSE_TIME_CYCLES_DEFAULT);
-        read_line();
-        printf("\n");
-        if (serial_buffer[0] == 0)
-            printf("Using default\n");
-        else
-            pulse_time_cycles = strtoul(serial_buffer, unused, 10);
-
-        multicore_fifo_push_blocking(cmd_config_pulse_delay_cycles);
-        multicore_fifo_push_blocking(pulse_delay_cycles);
-        uint32_t result = multicore_fifo_pop_blocking();
-        if(result != return_ok) {
-            printf("Config pulse_delay_cycles failed.");
-        }
-
-        multicore_fifo_push_blocking(cmd_config_pulse_time_cycles);
-        multicore_fifo_push_blocking(pulse_time_cycles);
-        result = multicore_fifo_pop_blocking();
-        if(result != return_ok) {
-            printf("Config pulse_time_cycles failed.");
-        }
-
-        printf("pulse_delay_cycles=%d, pulse_time_cycles=%d\n", pulse_delay_cycles, pulse_time_cycles);
-
-        return true;
-    }
     if(strcmp(command, "in") == 0 || strcmp(command, "internal_hvp") == 0) {
         multicore_fifo_push_blocking(cmd_internal_hvp);
         uint32_t result = multicore_fifo_pop_blocking();
@@ -221,39 +179,61 @@ bool handle_command(char *command) {
     }
 
     if(strcmp(command, "c") == 0 || strcmp(command, "configure") == 0) {
-        char **unused;
-        printf(" pulse_time (current: %d, default: %d)?\n> ", pulse_time, PULSE_TIME_US_DEFAULT);
+        char *unused;
+        printf(" pulse_time (current: %d, default: %d)? \n", pulse_time, PULSE_TIME_US_DEFAULT);
+        printf(" pulse_power (current: %f, default: %f)? \n", pulse_power.f, PULSE_POWER_DEFAULT);
+        printf(" pulse_delay_cycles (current: %d, default: %d)? \n", pulse_delay_cycles, PULSE_DELAY_CYCLES_DEFAULT);
+        printf(" pulse_time_cycles (current: %d, default: %d)? \n ", pulse_time_cycles, PULSE_TIME_CYCLES_DEFAULT);
+        printf(" configure in cycles\n");
+        printf("  1 cycle = 8ns\n");
+        printf("  1us = 125 cycles\n");
+        printf("  1ms = 125000 cycles\n");
+        printf("  max = MAX_UINT32 = 4294967295 cycles = 34359ms\n");
+
+
+
         read_line();
         printf("\n");
         if (serial_buffer[0] == 0)
             printf("Using default\n");
-        else
-            pulse_time = strtoul(serial_buffer, unused, 10);
+        else{
+            pulse_time = strtoul(serial_buffer, &unused, 10);
+            pulse_power.f = strtof(unused, &unused);
+            multicore_fifo_push_blocking(cmd_config_pulse_time);
+            multicore_fifo_push_blocking(pulse_time);
+            uint32_t result = multicore_fifo_pop_blocking();
+            if(result != return_ok) {
+                printf("Config pulse_time failed.");
+            }
 
-        printf(" pulse_power (current: %f, default: %f)?\n> ", pulse_power.f, PULSE_POWER_DEFAULT);
-        read_line();
-        printf("\n");
-        if (serial_buffer[0] == 0)
-            printf("Using default");
-        else
-            pulse_power.f = strtof(serial_buffer, unused);
+            multicore_fifo_push_blocking(cmd_config_pulse_power);
+            multicore_fifo_push_blocking(pulse_power.ui32);
+            result = multicore_fifo_pop_blocking();
+            if(result != return_ok) {
+                printf("Config pulse_power failed.");
+            }
 
-        multicore_fifo_push_blocking(cmd_config_pulse_time);
-        multicore_fifo_push_blocking(pulse_time);
-        uint32_t result = multicore_fifo_pop_blocking();
-        if(result != return_ok) {
-            printf("Config pulse_time failed.");
+            pulse_delay_cycles = strtoul(unused, &unused, 10);
+            pulse_time_cycles = strtoul(unused, &unused, 10);
+            multicore_fifo_push_blocking(cmd_config_pulse_delay_cycles);
+            multicore_fifo_push_blocking(pulse_delay_cycles);
+            result = multicore_fifo_pop_blocking();
+            if(result != return_ok) {
+                printf("Config pulse_delay_cycles failed.");
+            }
+
+            multicore_fifo_push_blocking(cmd_config_pulse_time_cycles);
+            multicore_fifo_push_blocking(pulse_time_cycles);
+            result = multicore_fifo_pop_blocking();
+            if(result != return_ok) {
+                printf("Config pulse_time_cycles failed.");
+            }
+
+            printf("pulse_time=%d\n", pulse_time);
+            printf("pulse_power=%f\n",pulse_power.f);
+            printf("pulse_delay_cycles=%d\n", pulse_delay_cycles);
+            printf("pulse_time_cycles=%d\n",  pulse_time_cycles);
         }
-
-        multicore_fifo_push_blocking(cmd_config_pulse_power);
-        multicore_fifo_push_blocking(pulse_power.ui32);
-        result = multicore_fifo_pop_blocking();
-        if(result != return_ok) {
-            printf("Config pulse_power failed.");
-        }
-
-        printf("pulse_time=%d, pulse_power=%f\n", pulse_time, pulse_power.f);
-
         return true;
     }
 
@@ -296,19 +276,15 @@ void serial_console() {
             printf("- [a]rm\n");
             printf("- [d]isarm\n");
             printf("- [p]ulse\n");
-            printf("- [en]able_timeout\n");
-            printf("- [di]sable_timeout\n");
             printf("- [f]ast_trigger\n");
-            printf("- [fa]st_trigger_configure: delay_cycles=%d, time_cycles=%d\n", pulse_delay_cycles, pulse_time_cycles);
             printf("- [in]ternal_hvp\n");
             printf("- [ex]ternal_hvp\n");
-            printf("- [c]onfigure: pulse_time=%d, pulse_power=%f\n", pulse_time, pulse_power.f);
+            printf("- [c]onfigure: pulse_time=%d, pulse_power=%f, delay_cycles=%d, time_cycles=%d, \n",pulse_time, pulse_power.f,pulse_delay_cycles, pulse_time_cycles);
             printf("- [t]oggle_gp1\n");
             printf("- [s]tatus\n");
             printf("- [r]eset\n");
         }
         printf("\n");
-        
         if (last_command[0] != 0) {
             printf("[%s] > ", last_command);
         } else {
