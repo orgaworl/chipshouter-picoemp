@@ -1,5 +1,6 @@
 #!/bin/bash
 
+cd ./c
 # depe
 sudo apt install cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
 
@@ -9,7 +10,6 @@ export PICO_SDK_PATH="$(pwd)/pico-sdk"
 
 
 # build
-cd ./firmware/c
 mkdir build
 cd ./build
 cmake -S .. -B .
